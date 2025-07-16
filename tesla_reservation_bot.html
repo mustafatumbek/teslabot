@@ -1,0 +1,116 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tesla Reservation Bot</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
+    button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+    #log { background: #fff; padding: 10px; border: 1px solid #ccc; height: 300px; overflow-y: scroll; }
+  </style>
+</head>
+<body>
+
+  <h1>Tesla Reservation Bot</h1>
+  <button onclick="startBot()">Başlat</button>
+  <button onclick="stopBot()">Durdur</button>
+
+  <div id="log"></div>
+
+  <script>
+    let bot;
+
+    const TELEGRAM_BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"; // Replace with your bot token
+    const TELEGRAM_CHAT_ID = "YOUR_CHAT_ID_HERE";     // Replace with your chat ID
+
+    class TeslaReservationBot {
+      constructor() {
+        this.active = false;
+        this.botId = this.generateUniqueBotID();
+        this.reservationAttemptsLog = new Set();
+        this.raceConditionCheckLog = new Set();
+        this.interval = null;
+        this.log(`Bot oluşturuldu: ${this.botId}`);
+      }
+
+      generateUniqueBotID() {
+        return `bot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      }
+
+      init() {
+        this.active = true;
+        this.log("Bot başlatıldı.");
+        this.interval = setInterval(() => this.checkInventoryAndReserve(), 1000);
+      }
+
+      stop() {
+        this.active = false;
+        clearInterval(this.interval);
+        this.log("Bot durduruldu.");
+      }
+
+      checkInventoryAndReserve() {
+        const inventoryId = `inv_${Math.floor(Math.random() * 10000)}`;
+        if (this.raceConditionCheckLog.has(inventoryId)) {
+          this.log(`Yarış durumu engellendi: ${inventoryId}`);
+          return;
+        }
+
+        this.raceConditionCheckLog.add(inventoryId);
+        const success = Math.random() > 0.5;
+        if (success) {
+          const message = `✅ Rezervasyon başarılı: ${inventoryId}`;
+          this.log(message);
+          this.sendTelegramNotification(message);
+        } else {
+          this.log(`❌ Rezervasyon başarısız: ${inventoryId}`);
+        }
+
+        this.reservationAttemptsLog.add(inventoryId);
+      }
+
+      sendTelegramNotification(message) {
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        const data = {
+          chat_id: TELEGRAM_CHAT_ID,
+          text: message
+        };
+
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+          this.log("📨 Telegram bildirimi gönderildi.");
+        })
+        .catch(error => {
+          this.log("⚠️ Telegram bildirimi başarısız: " + error.message);
+        });
+      }
+
+      log(message) {
+        const logDiv = document.getElementById("log");
+        logDiv.innerHTML += `<div>${new Date().toLocaleTimeString()} - ${message}</div>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+    }
+
+    function startBot() {
+      if (!bot || !bot.active) {
+        bot = new TeslaReservationBot();
+        bot.init();
+      }
+    }
+
+    function stopBot() {
+      if (bot && bot.active) {
+        bot.stop();
+      }
+    }
+  </script>
+
+</body>
+</html>
